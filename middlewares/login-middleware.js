@@ -1,25 +1,29 @@
 const jwt = require('jsonwebtoken');
-const Signup = require('../schemas/signup');
+const { Users } = require('../models');
 
 const loginMiddleware = async (req, res, next) => {
-  const { authorization } = req.headers;
+  const { authorization } = req.cookies;
   const [authType, authToken] = (authorization ?? '').split(' ');
+
+  if (!authorization) {
+    return res.status(403).json({ errorMessage: '토큰이 존재하지 않습니다.' });
+  }
 
   if (authType !== 'Bearer' || !authToken) {
     return res.status(403).json({ errorMessage: '로그인이 필요한 기능입니다' });
   }
 
   try {
-    const { userId } = jwt.verify(authToken, 'costomized-secret-key');
+    const { usersId } = jwt.verify(authToken, 'costomized-secret-key');
 
-    const user = await Signup.findById(userId);
+    const user = await Users.findOne({
+      where: usersId,
+    });
     res.locals.user = user;
     next();
   } catch (error) {
     console.log(error);
-    res
-      .status(400)
-      .json({ errorMessage: '로그인 후에 이용할 수 있는 기능입니다.' });
+    res.status(400).json({ errorMessage: '잘못된 접근입니다.' });
   }
 };
 

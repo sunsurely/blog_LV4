@@ -1,12 +1,14 @@
 const express = require('express');
 const router = express.Router();
-const Signup = require('../schemas/signup');
+const { Users } = require('../models');
 const jwt = require('jsonwebtoken');
 
 router.post('/', async (req, res) => {
   const { nickname, password } = req.body;
 
-  const user = await Signup.findOne({ nickname });
+  const user = await Users.findOne({
+    where: { nickname },
+  });
 
   if (!user || password !== user.password) {
     return res
@@ -14,9 +16,9 @@ router.post('/', async (req, res) => {
       .json({ errorMessage: '닉네임 또는 패스워드를 확인해주세요' });
   }
 
-  const token = jwt.sign({ userId: user.userId }, 'costomized-secret-key');
+  const token = jwt.sign({ usersId: user.usersId }, 'costomized-secret-key');
   res.cookie('authorization', `Bearer ${token}`);
-  res.status(200).json({ token });
+  return res.status(200).json({ message: '로그인에 성공하였습니다.' });
 });
 
 module.exports = router;
