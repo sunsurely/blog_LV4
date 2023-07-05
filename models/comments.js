@@ -1,66 +1,61 @@
 'use strict';
 const { Model } = require('sequelize');
 module.exports = (sequelize, DataTypes) => {
-  class Posts extends Model {
+  class Comments extends Model {
     /**
      * Helper method for defining associations.
      * This method is not a part of Sequelize lifecycle.
      * The `models/index` file will call this method automatically.
      */
     static associate(models) {
-      // define association here
-
       this.belongsTo(models.Users, {
         targetKey: 'usersId',
         foreignKey: 'UsersId',
       });
 
-      this.hasMany(models.Comments, {
-        sourceKey: 'postId',
+      this.belongsTo(models.Posts, {
+        targetKey: 'postId',
         foreignKey: 'PostId',
       });
     }
   }
-
-  Posts.init(
+  Comments.init(
     {
-      postId: {
+      commentId: {
         allowNull: false, // NOT NULL
         autoIncrement: true, // AUTO_INCREMENT
         primaryKey: true, // Primary Key (기본키)
+        type: DataTypes.INTEGER,
+      },
+      comment: {
+        allowNull: false,
+        type: DataTypes.STRING,
+      },
+      PostId: {
+        allowNull: false, // NOT NULL
         type: DataTypes.INTEGER,
       },
       UsersId: {
         allowNull: false, // NOT NULL
         type: DataTypes.INTEGER,
       },
-      nickname: {
+      Nickname: {
         allowNull: false,
         type: DataTypes.STRING,
       },
-      title: {
-        allowNull: false, // NOT NULL
-        type: DataTypes.STRING,
-      },
-      content: {
-        allowNull: false, // NOT NULL
-        type: DataTypes.STRING,
-      },
       createdAt: {
-        allowNull: false, // NOT NULL
+        allowNull: false,
         type: DataTypes.DATE,
-        defaultValue: DataTypes.NOW,
       },
       updatedAt: {
-        allowNull: false, // NOT NULL
+        allowNull: false,
         type: DataTypes.DATE,
-        defaultValue: DataTypes.NOW,
       },
     },
     {
       sequelize,
-      modelName: 'Posts',
+      modelName: 'Comments',
     },
   );
-  return Posts;
+  return Comments;
 };
