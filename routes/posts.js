@@ -3,8 +3,12 @@ const router = express.Router();
 const { Posts } = require('../models');
 const { Comments } = require('../models');
 const { Users } = require('../models');
+const { Likes } = require('../models');
 const { Op } = require('sequelize');
 const loginMiddleware = require('../middlewares/login-middleware.js');
+const likeMiddleware = require('../middlewares/forLike-middleware');
+const { Transaction } = require('sequelize');
+const { sequelize } = require('../models');
 
 router.post('/', loginMiddleware, async (req, res) => {
   const { usersId } = res.locals.user;
@@ -23,30 +27,110 @@ router.post('/', loginMiddleware, async (req, res) => {
   return res.status(201).json({ data: post });
 });
 
-router.get('/', async (req, res) => {
-  const posts = await Posts.findAll({
-    attributes: ['postId', 'title', 'createdAt', 'updatedAt'],
-    order: [['createdAt', 'DESC']],
-  });
+router.get('/', likeMiddleware, async (req, res) => {
+  const { usersId } = res.locals.user;
+  if (!usersId) {
+    try {
+      const posts = await Posts.findAll({
+        attributes: [
+          'postId',
+          'title',
+          'createdAt',
+          'nickname',
+          'likes',
+          'updatedAt',
+        ],
+        order: [['createdAt', 'DESC']],
+        include: [{ model: Likes, attributes: ['UsersId', 'PostId'] }],
+      });
 
-  return res.status(200).json({ data: posts });
+      return res.status(200).json({ data: data });
+    } catch (error) {
+      console.error(error);
+      return res
+        .status(400)
+        .json({ errorMessage: '데이터를 불러오지 못했습니다.' });
+    }
+  }
+
+  try {
+    const posts = await Posts.findAll({
+      attributes: [
+        'postId',
+        'title',
+        'createdAt',
+        'nickname',
+        'likes',
+        'updatedAt',
+      ],
+      order: [['createdAt', 'DESC']],
+      include: [
+        {
+          model: Likes,
+          attributes: ['UsersId', 'PostId'],
+        },
+      ],
+    });
+    //서버에서 보내준 데이터와 아이디를 대조해서 좋아요 하트색상을 변경하도록 프론트에 처리를 맡김
+    const responseData = { data: posts, userId: usersId };
+
+    return res.status(200).json(responseData);
+  } catch (error) {
+    console.log(error);
+  }
 });
 
-router.get('/:postId', async (req, res) => {
+router.get('/:postId', likeMiddleware, async (req, res) => {
   const { postId } = req.params;
-  const post = await Posts.findOne({
-    attributes: [
-      'postId',
-      'title',
-      'nickname',
-      'content',
-      'createdAt',
-      'updatedAt',
-    ],
-    where: { postId },
-  });
+  const { usersId } = res.locals.user;
 
-  return res.status(200).json({ data: post });
+  if (!usersId) {
+    try {
+      const post = await Posts.findOne({
+        attributes: [
+          'postId',
+          'title',
+          'nickname',
+          'likes',
+          'content',
+          'createdAt',
+          'updatedAt',
+        ],
+        where: { postId },
+      });
+
+      return res.status(200).json({ data: post });
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  try {
+    const posts = await Posts.findOne({
+      where: { postId },
+      attributes: [
+        'postId',
+        'title',
+        'createdAt',
+        'nickname',
+        'likes',
+        'updatedAt',
+      ],
+      order: [['createdAt', 'DESC']],
+      include: [
+        {
+          model: Likes,
+          attributes: ['UsersId', 'PostId'],
+        },
+      ],
+    });
+
+    const responseData = { data: posts, userId: usersId };
+
+    return res.status(200).json(responseData);
+  } catch (error) {
+    console.log(error);
+  }
 });
 
 router.put('/:postId', loginMiddleware, async (req, res) => {
@@ -152,6 +236,49 @@ router.patch(
   },
 );
 
+router.put('/:postId/like', loginMiddleware, async (req, res) => {
+  const user = res.locals.user;
+  const { postId } = req.params;
+
+  const post = await Posts.findOne({
+    where: { postId },
+  });
+
+  const myLike = await Likes.findOne({
+    where: {
+      [Op.and]: [{ PostId: postId }, { UsersId: user.usersId }],
+    },
+  });
+
+  const t = await sequelize.transaction({
+    isolationLevel: Transaction.ISOLATION_LEVELS.READ_COMMITTED,
+  });
+
+  try {
+    if (myLike) {
+      await myLike.destroy();
+      await post.update({ likes: post.likes - 1 }, { transaction: t });
+      await t.commit();
+      return res.status(201).json({ message: '좋아요 취소' });
+    } else {
+      await Likes.create(
+        {
+          PostId: postId,
+          UsersId: user.usersId,
+        },
+        { transaction: t },
+      );
+      await post.update({ likes: post.likes + 1 }, { transaction: t });
+      await t.commit();
+      return res.status(201).json({ message: '좋아요 추가' });
+    }
+  } catch (error) {
+    console.error(error);
+    await t.rollback();
+    return res.status(400).json({ errorMessage: '좋아요 수정 오류' });
+  }
+});
+
 router.delete(
   '/:postId/comments/:commentId',
   loginMiddleware,
@@ -175,4 +302,5 @@ router.delete(
     return res.status(201).json({ message: '댓글을 삭제했습니다.' });
   },
 );
+
 module.exports = router;

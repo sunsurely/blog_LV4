@@ -19,6 +19,11 @@ module.exports = (sequelize, DataTypes) => {
         sourceKey: 'postId',
         foreignKey: 'PostId',
       });
+
+      this.hasMany(models.Likes, {
+        sourceKey: 'postId',
+        foreignKey: 'PostId',
+      });
     }
   }
 
@@ -45,6 +50,11 @@ module.exports = (sequelize, DataTypes) => {
       content: {
         allowNull: false, // NOT NULL
         type: DataTypes.STRING,
+      },
+      likes: {
+        allowNull: false,
+        type: DataTypes.INTEGER,
+        defaultValue: 0,
       },
       createdAt: {
         allowNull: false, // NOT NULL

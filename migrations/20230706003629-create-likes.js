@@ -1,33 +1,24 @@
 'use strict';
+
+const { sequelize } = require('../models');
+
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up(queryInterface, Sequelize) {
-    await queryInterface.createTable('Comments', {
-      commentId: {
+    await queryInterface.createTable('Likes', {
+      likeId: {
         allowNull: false,
         autoIncrement: true,
         primaryKey: true,
         type: Sequelize.INTEGER,
       },
       PostId: {
-        allowNull: false, // NOT NULL
+        allowNull: false,
         type: Sequelize.INTEGER,
       },
       UsersId: {
-        allowNull: false, // NOT NULL
-        type: Sequelize.INTEGER,
-      },
-      Nickname: {
-        allowNull: false, // NOT NULL
-        type: Sequelize.STRING,
-      },
-      likes: {
         allowNull: false,
         type: Sequelize.INTEGER,
-      },
-      comment: {
-        allowNull: false,
-        type: Sequelize.STRING,
       },
       createdAt: {
         allowNull: false,
@@ -40,6 +31,6 @@ module.exports = {
     });
   },
   async down(queryInterface, Sequelize) {
-    await queryInterface.dropTable('Comments');
+    await queryInterface.dropTable('Likes');
   },
 };
