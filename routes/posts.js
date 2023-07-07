@@ -11,11 +11,8 @@ const { Transaction } = require('sequelize');
 const { sequelize } = require('../models');
 
 router.post('/', loginMiddleware, async (req, res) => {
-  const { usersId } = res.locals.user;
+  const user = res.locals.user;
   const { title, content } = req.body;
-  const user = await Users.findOne({
-    where: usersId,
-  });
 
   const post = await Posts.create({
     UsersId: user.usersId,
