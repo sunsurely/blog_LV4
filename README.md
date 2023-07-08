@@ -1,2 +1,1 @@
-# blog_sever_mysql
-몽고DB에서  Mysql로 DB교체
+좋아요와 댓글 기능 추가
